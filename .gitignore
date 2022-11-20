@@ -1,4 +1,5 @@
 UsersDirs/
+app.db
 
 __pycache__
 *.py[cod]
