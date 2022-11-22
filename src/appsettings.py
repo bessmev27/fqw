@@ -1,7 +1,5 @@
-from models.user import User
 import json
 from pathlib import Path
-from models.directory import FileEncoder
 from deprecated import deprecated
 
 
@@ -21,19 +19,6 @@ class AppSettings:
             if not key == base:
                 settings[key] = str(Path(settings[base]).joinpath(settings[key]))
         return settings
-
-    @deprecated(reason="Unused now!")
-    def load_users(self):
-        users_file = self.__working_dir.joinpath("users.json")
-        if not users_file.exists():
-            return []
-        users = [User(**x) for x in json.loads(users_file.read_text())]
-        return users
-
-    @deprecated(reason="Unused now!")
-    def save_users(self, users):
-        self.__working_dir.joinpath("users.json").write_text(
-            json.dumps(users, cls=FileEncoder))
 
     def get_property(self, property_name):
         if self.__settings_cache is None:

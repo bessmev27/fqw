@@ -1,35 +1,38 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models.base import Base
-import os
-from models.catalog import UserCatalog
+from .base import Base
 
-from models.user import User
-from models.catalog import UserCatalog
+from .catalog import UserCatalog
+
 
 
 class Database:
-
 
     def __init__(self,app_settings) -> None:
         self.SQLALCHEMY_DATABASE_URL = f"sqlite:///{app_settings.get_property('app_db')}"
         self.SQLALCHEMY_DATABASE_PATH = app_settings.get_property("app_db")
         self.engine = create_engine(
         self.SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-        self.session_local = sessionmaker(autoflush=False, bind=self.engine)
+        self.Session = sessionmaker(autoflush=False, bind=self.engine)
 
 
     def create_database(self):
         print("Creating database!")
         Base.metadata.create_all(bind=self.engine)
-        temp_con = self.create_connection()
-        catalog = UserCatalog("Default")
+        catalog = UserCatalog(name="Default")
+        temp_con = next(self.create_connection())
         temp_con.add(catalog)
         temp_con.commit()
     
     
     def create_connection(self):
-        return self.session_local()
+        try:
+            session = self.Session()
+            yield session
+        finally:
+            session.close()
 
 
     def database_exists(self):

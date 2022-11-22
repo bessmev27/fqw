@@ -1,37 +1,19 @@
-import os
-from pathlib import Path
 #from datetime import datetime
 from json import JSONEncoder
-from models.base import Base
-from sqlalchemy import Column,String,Integer,ForeignKey,sql,DateTime
-from sqlalchemy.orm import relationship,backref
+
+from .base import BasePydanticModel
+
+from .directory import Directory
+
+from .file import File
 
 
-# class File:
-#     def __init__(self, name, parent=None):
-#         self.name = name
-#         self.parent = parent
+class Directory(BasePydanticModel):
 
-
-class Directory(Base):
-
-    __tablename__ = "user_directories"
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    parent_id = Column(Integer,ForeignKey("user_directories.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime(timezone=True), server_default=sql.func.now())
-    directories = relationship("Directory", backref=backref("parent", remote_side=[id]))
-    files = relationship("File",back_populates="directory")
+    name: str
+    directories: list[Directory]
+    files: list[File]
     
-
-    def __init__(self, name,user_id, parent_id = None):
-        self.name = name
-        self.parent_id = parent_id
-        self.user_id = user_id
-
-    def __repr__(self) -> str:
-        return f"parent_id = {self.parent_id} ; name = {self.name}"
 
 
 # class FileTree:
