@@ -1,10 +1,8 @@
-import enum
 from .base import Base
 from sqlalchemy import Boolean, Column, DateTime, String, Integer, ForeignKey, func, Enum
 from sqlalchemy.orm import relationship
 from ..models.file import FileType
 
-    
 class File(Base):
 
     __tablename__ = "user_files"
@@ -22,6 +20,5 @@ class File(Base):
 
     created = Column(DateTime(timezone=True), server_default=func.now())
     is_deleted = Column(Boolean, default=False)
-    last_updated_by = Column(Integer)
-    last_updated = Column(DateTime(timezone=True),
-                          server_default=func.now())
+    modified = Column(DateTime(timezone=True),
+                      server_default=func.now(),onupdate=func.now())

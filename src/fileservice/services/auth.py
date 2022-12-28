@@ -4,49 +4,51 @@ from typing import Optional
 from fastapi import Depends
 from ..models.user import User, UserCreate, Token
 from ..appsettings import AppSettings, get_settings
-from ..database.repository.user import UserRepository
-from .disk import DiskService
+from ..services.user import UserService
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt
-
+from jose import jwt, JWTError
+from ..models.exception import NotAuthenticatedException, InvalidOperationException
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 class AuthService:
-    def __init__(self, user_service: UserRepository = Depends(), app_settings: AppSettings = Depends(get_settings)):
+    def __init__(self, user_service: UserService = Depends(), app_settings: AppSettings = Depends(get_settings)):
         self.__user_service = user_service
         self.__pwd_context = CryptContext(
             schemes=["bcrypt"], deprecated="auto")
         self.__app_settings = app_settings
 
     def verify_token(self, token):
-        payload = jwt.decode(
-            token, self.__app_settings.jwt_secret, algorithms=[self.__app_settings.jwt_algorithm])
-        user_data = payload.get("user")
-        user = User.parse_obj(user_data)
-        return user
+        try:
+            payload = jwt.decode(
+                token, self.__app_settings.jwt_secret, algorithms=[self.__app_settings.jwt_algorithm])
+            user_data = payload.get("user")
+            user = User.parse_obj(user_data)
+            return user
+        except JWTError as e:
+            raise NotAuthenticatedException(
+                "Invalid signature or token was expired") from e
 
     def get_password_hash(self, password):
         return self.__pwd_context.hash(password)
 
     def verify_password(self, plain_password, hashed_password):
         return self.__pwd_context.verify(plain_password, hashed_password)
+    
+    def create_user(self, user_request):
+        user_request.password = self.get_password_hash(user_request.password)
+        return self.__user_service.create_user(user_request)  
 
     def authenticate_user(self, username, password):
+        exception = NotAuthenticatedException("Invalid username or password")
         user = self.__user_service.get_user(username)
         if not user:
-            return False
-        if not self.verify_password(password, user.hashed_password):
-            return False
+            raise exception
+        if not self.verify_password(password, user.password):
+            return exception
         return user
-
-    def create_user(self, user_request):
-        hashed_password = self.get_password_hash(user_request.password)
-        data = user_request.dict()
-        data.update({"hashed_password": hashed_password})
-        return User.from_orm(self.__user_service.create_user(data))
 
     def create_access_token(self, user):
         user_data = User.from_orm(user)

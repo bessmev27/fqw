@@ -1,6 +1,7 @@
 
 from typing import Optional
 from .base import BasePydanticModel
+from pydantic import EmailStr
 
 
 class User(BasePydanticModel):

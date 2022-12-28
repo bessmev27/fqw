@@ -1,12 +1,15 @@
 from fastapi import FastAPI
 
-from . import api
+from . import routes
 
 from .database.db import create_connection, create_if_not_exists
 from .services.disk import DiskService
 from .appsettings import AppSettings, get_settings
 from .database.repository.file import FileRepository
-
+from .models.exception import InvalidOperationException, NotAuthenticatedException,UnexpectedException
+from fastapi.responses import Response, JSONResponse
+from fastapi import status, HTTPException
+from fastapi.exception_handlers import http_exception_handler
 
 create_if_not_exists()
 
@@ -25,5 +28,34 @@ app = FastAPI(
     version='1.0.0',
 )
 
+app.include_router(routes.router)
 
-app.include_router(api.router)
+
+@app.exception_handler(ValueError)
+async def invalid_data_exception_handler(request, exc):
+    exception = HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return await http_exception_handler(request, exception)
+
+
+@app.exception_handler(InvalidOperationException)
+async def invalid_operation_exception_handler(request, exc):
+    exception = HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return await http_exception_handler(request, exception)
+
+
+@app.exception_handler(NotAuthenticatedException)
+async def not_authenticated_exception_handler(request, exc):
+    exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=str(exc),
+        headers={'WWW-Authenticate': 'Bearer'},
+    )
+    return await http_exception_handler(request, exception)
+
+@app.exception_handler(UnexpectedException)
+async def unexpected_exception_handler(request, exc):
+    exception = HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+    return await http_exception_handler(request, exception)

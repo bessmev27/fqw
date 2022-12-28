@@ -14,31 +14,21 @@ router = APIRouter(
 
 
 @router.get('/', response_model=DirectoryWithChildren)
-def get_directory_root(response: Response, user: User = Depends(get_current_user), disk_service: DiskService = Depends()):
+def get_directory_root(user: User = Depends(get_current_user), disk_service: DiskService = Depends()):
     result = disk_service.get_user_root(user.id)
-    if not result:
-        response.status_code = status.HTTP_204_NO_CONTENT
-        return response
     return result
 
 
 @router.get("/directories/{directory_id}", response_model=DirectoryWithChildren)
 def get_directory(directory_id: int, user: User = Depends(get_current_user), disk_service: DiskService = Depends()):
     result = disk_service.get_directory(user.id, directory_id)
-    if not result:
-        raise HTTPException(
-            status_code=404, detail="Item not found")
     return result
 
 
 @router.post('/directories', response_model=Directory, status_code=status.HTTP_201_CREATED)
 def create_directory(request: DirectoryCreateRequest, user: User = Depends(get_current_user),
                      disk_service: DiskService = Depends()):
-    try:
-        return disk_service.create_directory(user.id, request)
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=404, detail=str(e))
+    return disk_service.create_directory(user.id, request)
 
 
 @router.delete("/directories/{directory_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -53,8 +43,8 @@ def delete_file(file_id: int, user: User = Depends(get_current_user), disk_servi
 
 @router.post('/upload', response_model=List[File], status_code=status.HTTP_201_CREATED)
 def upload_file(files: List[UploadFile], parent_id: int, user: User = Depends(get_current_user), disk_service: DiskService = Depends()):
-    request = FileUploadRequest(parent_id=parent_id)
-    return disk_service.upload_file(user.id, request, files)
+    result = disk_service.upload_file(user.id, parent_id, files)
+    return result
 
 
 @router.patch("/files/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -81,5 +71,4 @@ def set_status_file(response: Response, file_id: int, deleted_status: bool, user
 @router.get('/download/{file_id}')
 def download_file(file_id: int, user: User = Depends(get_current_user), disk_service: DiskService = Depends()):
     response = disk_service.download_file(user.id, file_id)
-    print(response)
     return FileResponse(path=response.path, filename=response.name)

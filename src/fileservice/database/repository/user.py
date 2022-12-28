@@ -2,15 +2,13 @@ from typing import List, Optional
 
 from fastapi import Depends
 
-from ..catalog import UserCatalog
-
 from ..user import User
+from sqlalchemy import select,or_,func
 
 from sqlalchemy.orm import Session
 
 from ..db import create_connection
 
-from ...models.user import UserCreate
 
 
 class UserRepository:
@@ -19,7 +17,9 @@ class UserRepository:
         self.__db_session = database_connection
 
     def get_users(self) -> List[User]:
-        return self.__db_session.query(User).all()
+        stmt = select(User)
+        result = self.__db_session.scalars(stmt)
+        return result
 
     def create_user(self, user_request) -> User:
         new_user = User(**user_request)
@@ -27,8 +27,18 @@ class UserRepository:
         self.__db_session.commit()
         return new_user
 
-    def get_user(self, login) -> Optional[User]:
-        result = self.__db_session.query(
-            User).filter(User.login == login).first()
-        if not result is None:
-            return result
+    def get_user(self, login, email=None) -> Optional[User]:
+        filters = [User.login == login]
+        stmt = select(
+            User)
+        if email:
+            filters.append(User.email == email)
+        stmt = stmt.where(*filters)
+        result = self.__db_session.scalar(stmt)
+        return result
+    
+    def get_user_for_register(self,login,email):
+        filters = [User.login == login, User.email == email]
+        stmt = select(func.count(User.id)).where(or_(*filters))
+        result = self.__db_session.scalar(stmt)
+        return result

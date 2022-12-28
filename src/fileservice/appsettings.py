@@ -5,7 +5,6 @@ from pydantic import BaseSettings
 
 
 def get_working_dir():
-    print("Accessed")
     return Path.cwd().joinpath("fileservice")
 
 
@@ -17,7 +16,7 @@ class AppSettings(BaseSettings):
 
     jwt_secret: str
     jwt_algorithm: str = 'HS256'
-    jwt_expires_s: int = 900
+    jwt_expires_s: int = 9000
 
     working_dir = get_working_dir()
     users_directories = working_dir.joinpath("UsersDirs")

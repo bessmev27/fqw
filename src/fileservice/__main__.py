@@ -5,7 +5,6 @@ import os
 
 settings = get_settings()
 
-print(os.getcwd())
 
 uvicorn.run(
     'fileservice.app:app',
